@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flyer Maker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Flyer Maker</h1>
+    <p>Fill in the course details once. All flyers update as you type.</p>
+  </header>
+  <main>
+    <section class="panel">
+      <form id="fields" autocomplete="off" onsubmit="return false"></form>
+      <div class="actions">
+        <button type="button" id="download-all">Download all flyers</button>
+        <button type="button" id="clear" class="secondary">Clear form</button>
+      </div>
+    </section>
+    <section id="previews"></section>
+  </main>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script src="templates.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
