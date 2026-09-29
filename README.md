@@ -1,36 +1,47 @@
 # Flyer Maker
 
-A one-page web app that fills in the changing text on the course flyers
-(city, state, hosted by, dates, hours, address, price, LEO/Public, seats) and
-downloads every flyer at once. The Canva designs are used as untouched
-background images, so colors, logos and layout stay exactly as designed.
+A one-page web app for the EFC Instructor Certification Course flyers. Type
+the course details once and it produces all six flyers, using the exact Canva
+designs as backgrounds, so colors, photos, logos and layout stay untouched:
 
-- **Print flyer:** 8.5×11 PDF at 300 DPI, light on page 1 and dark on page 2
-- **Social post:** 1080×1080 PNG, light and dark
-- **Story:** 1080×1920 PNG, light and dark
+| Design | Output |
+| --- | --- |
+| Print flyer 8.5×11, light and dark | One PDF at 300 DPI: light is page 1, dark is page 2 |
+| Social post 1080×1080, light and dark | Two PNGs |
+| Story 1080×1920, light and dark | Two PNGs |
 
-Text wraps inside each flyer's margins, lines are balanced so a single word
-isn't left on its own line, and text only shrinks when wrapping can't make it
-fit. If something is still too long, the app says so under that flyer.
+Changing fields: city, state, hosted by, date range, hours, address, price,
+who it's open to (LEO or Public) and, on the 8.5×11 only, seats available.
+Choosing LEO or Public also switches the "Designed for …" bullet and the fine
+print on every flyer.
+
+Text is set in Teko and Work Sans at the same sizes and positions as the
+Bryan, TX flyers. It wraps inside each panel the way Canva does, never leaves
+a single word alone on the last line, and only gets smaller when wrapping
+can't make it fit. If something is still too long, the app says so under
+that flyer.
 
 ## Using it
 
 Open `index.html` through any web server (it can't run by double-clicking the
-file). Type the course details once, then click **Download all flyers**. The
-last values typed are remembered in the browser.
+file). Fill in the form, then click **Download all flyers**. The last values
+typed are remembered in the browser.
 
 To run it locally: `python3 -m http.server` in this folder, then open
 http://localhost:8000.
 
-## Adding or updating a template
+## How it's put together
 
-1. In Canva, make a copy of the design, delete only the text that changes, and
-   download it as PNG (or PDF Print for the 8.5×11).
-2. Save it in `templates/` using the file name set in `templates.js`
-   (for example `print-light.png` or `story-dark.png`). Convert a PDF to a
-   2550×3300 PNG.
-3. Adjust the text box positions in `templates.js`. Open the app with
-   `?debug` on the end of the address to see the box outlines.
+- `sources/`: the Canva exports (8.5×11 PDF, story PDF, square PNGs) plus the
+  Bryan, TX stories used to check the layout.
+- `tools/build_backgrounds.py`: removes the changing text from the sources and
+  writes the blank backgrounds to `templates/`. Rerun it after replacing a
+  source file: `pip install pymupdf pillow numpy`, then
+  `python3 tools/build_backgrounds.py`.
+- `templates.js`: every text box's font, size, color and position, plus the
+  wording for LEO and Public. Open the app with `?debug` on the end of the
+  address to see the boxes outlined.
+- `app.js`: the form, text layout, and PDF/PNG export.
 
-Everything the page needs (Work Sans font, jsPDF, JSZip) is stored in this
-repo, so the page doesn't load anything from outside sites.
+Fonts (Teko, Work Sans), jsPDF and JSZip are stored in this repo, so the page
+doesn't load anything from outside sites.
