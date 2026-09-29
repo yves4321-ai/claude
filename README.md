@@ -30,6 +30,13 @@ typed are remembered in the browser.
 To run it locally: `python3 -m http.server` in this folder, then open
 http://localhost:8000.
 
+## Putting it online (Netlify)
+
+`netlify.toml` tells Netlify what to publish. In Netlify: **Add new site →
+Import an existing project → GitHub**, pick this repository and the branch
+with the app, and deploy. Netlify reads the settings from `netlify.toml`, so
+nothing needs to be filled in. Every push to that branch updates the site.
+
 ## How it's put together
 
 - `sources/`: the Canva exports (8.5×11 PDF, story PDF, square PNGs) plus the

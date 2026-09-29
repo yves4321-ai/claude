@@ -47,11 +47,7 @@ const FIELDS = [
 ];
 
 // The "Designed for …" bullet changes with who the course is open to.
-const DESIGNED_FOR_LED = {
-  LEO: 'Designed for LEO, by LED',
-  Public: 'Designed for LEO, Security & Military personnel, by LED',
-};
-const DESIGNED_FOR_LEO = {
+const DESIGNED_FOR = {
   LEO: 'Designed for LEO, by LEO',
   Public: 'Designed for LEO, Security & Military personnel, by LEO',
 };
@@ -71,7 +67,7 @@ const TEMPLATES = [
         name: 'Light',
         background: 'templates/print-light.png',
         designation: { LEO: 'Open to LEO ONLY', Public: PUBLIC_TEXT },
-        designedFor: DESIGNED_FOR_LED,
+        designedFor: DESIGNED_FOR,
         limited: 'Limited Space Available',
         boxes: [
           { text: '{city}, {state}', font: TEKO, weight: 500, color: WHITE, size: 147.4, x: 151, w: 1010, y: 502, valign: 'middle', maxLines: 1, upper: true },
@@ -97,7 +93,7 @@ const TEMPLATES = [
         name: 'Dark',
         background: 'templates/print-dark.png',
         designation: { LEO: 'LEO ONLY', Public: PUBLIC_TEXT },
-        designedFor: DESIGNED_FOR_LED,
+        designedFor: DESIGNED_FOR,
         limited: 'Limited Spots Available',
         boxes: [
           { text: '{city}, {state}', font: TEKO, weight: 500, color: WHITE, size: 147.4, x: 151, w: 786, y: 502, valign: 'middle', maxLines: 1, upper: true },
@@ -132,7 +128,7 @@ const TEMPLATES = [
         name: 'Light',
         background: 'templates/square-light.png',
         designation: { LEO: 'Open to LEO Only', Public: PUBLIC_TEXT },
-        designedFor: DESIGNED_FOR_LED,
+        designedFor: DESIGNED_FOR,
         boxes: [
           { text: '{city}, {state}', font: TEKO, weight: 500, color: WHITE, size: 59.4, x: 53, w: 377, y: 193.8, valign: 'middle', maxLines: 1, upper: true },
           { text: '{hostedBy}', font: TEKO, weight: 600, color: WHITE, size: 37.7, x: 54, w: 450, y: 510.7, lineGap: 37.1, maxLines: 2, bottom: 550, upper: true },
@@ -156,7 +152,7 @@ const TEMPLATES = [
         name: 'Dark',
         background: 'templates/square-dark.png',
         designation: { LEO: 'Open to LEO ONLY', Public: PUBLIC_TEXT },
-        designedFor: DESIGNED_FOR_LED,
+        designedFor: DESIGNED_FOR,
         boxes: [
           { text: '{city}, {state}', font: TEKO, weight: 500, color: WHITE, size: 59.4, x: 53, w: 347, y: 193.8, valign: 'middle', maxLines: 1, upper: true },
           { text: '{hostedBy}', font: TEKO, weight: 600, color: WHITE, size: 38.6, x: 52, w: 525, y: 512.6, lineGap: 38.2, maxLines: 2, bottom: 552, upper: true },
@@ -189,7 +185,7 @@ const TEMPLATES = [
         name: 'Light',
         background: 'templates/story-light.png',
         designation: { LEO: 'Open to LEO Only', Public: PUBLIC_TEXT },
-        designedFor: DESIGNED_FOR_LEO,
+        designedFor: DESIGNED_FOR,
         boxes: [
           { text: '{city}, {state}', font: TEKO, weight: 500, color: BLACK, size: 57.7, x: 46.4, w: 620, y: 807, valign: 'middle', maxLines: 1, upper: true },
           { text: 'HOSTED BY', when: 'hostedBy', font: TEKO, weight: 300, color: OLIVE, size: 41.4, x: 48, w: 400, y: 1103.8, maxLines: 1 },
@@ -213,7 +209,7 @@ const TEMPLATES = [
         name: 'Dark',
         background: 'templates/story-dark.png',
         designation: { LEO: '(LEO ONLY)', Public: '(Open to Public - LEO, Security, Military Personnel, & Approved Civilians)' },
-        designedFor: DESIGNED_FOR_LEO,
+        designedFor: DESIGNED_FOR,
         boxes: [
           { text: '{city}, {state}', font: TEKO, weight: 500, color: WHITE, size: 57.7, x: 46.4, w: 620, y: 807, valign: 'middle', maxLines: 1, upper: true },
           {

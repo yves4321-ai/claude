@@ -1,0 +1,4 @@
+# Netlify publishes only the files the page needs (not the Canva sources).
+[build]
+  command = "mkdir -p dist && cp -r index.html app.js templates.js styles.css fonts vendor templates dist/"
+  publish = "dist"
