@@ -7,6 +7,9 @@ const previews = document.getElementById('previews');
 const backgrounds = {};
 const canvases = {};
 
+// Every template/version pair is drawn on its own canvas.
+const sheets = TEMPLATES.flatMap((t) => t.versions.map((v) => ({ key: `${t.id}-${v.id}`, t, v })));
+
 // ---------- form ----------
 
 function loadSaved() {
@@ -141,8 +144,8 @@ function layout(ctx, box, text) {
 
 // ---------- drawing ----------
 
-function drawPlaceholder(ctx, t) {
-  ctx.fillStyle = '#f1efe9';
+function drawPlaceholder(ctx, t, v) {
+  ctx.fillStyle = v.id === 'dark' ? '#2b2f38' : '#f1efe9';
   ctx.fillRect(0, 0, t.width, t.height);
   ctx.strokeStyle = '#c9c4b8';
   ctx.lineWidth = Math.max(2, t.width / 300);
@@ -150,10 +153,10 @@ function drawPlaceholder(ctx, t) {
   ctx.fillStyle = '#9a9384';
   ctx.font = `600 ${Math.round(t.width / 28)}px "${FONT_FAMILY}"`;
   ctx.textAlign = 'center';
-  ctx.fillText(`Canva background goes here: ${t.background}`, t.width / 2, t.height * 0.12);
+  ctx.fillText(`Canva background goes here: ${v.background}`, t.width / 2, t.height * 0.12);
 }
 
-function drawBox(ctx, box, text) {
+function drawBox(ctx, box, text, colors) {
   const { size, lines, lineHeight, shrunk, overflow } = layout(ctx, box, text);
   setFont(ctx, box, size);
   const lineGap = size * lineHeight;
@@ -162,7 +165,7 @@ function drawBox(ctx, box, text) {
   if (box.valign === 'middle') top = box.y + (box.h - blockHeight) / 2;
   if (box.valign === 'bottom') top = box.y + box.h - blockHeight;
 
-  ctx.fillStyle = box.color || '#000';
+  ctx.fillStyle = colors[box.color] || box.color || '#000';
   ctx.textBaseline = 'middle';
   const align = box.align || 'left';
   ctx.textAlign = align;
@@ -171,12 +174,11 @@ function drawBox(ctx, box, text) {
   return { shrunk, overflow };
 }
 
-function render(t, values) {
-  const canvas = canvases[t.id];
-  const ctx = canvas.getContext('2d');
+function render({ key, t, v }, values) {
+  const ctx = canvases[key].getContext('2d');
   ctx.clearRect(0, 0, t.width, t.height);
-  if (backgrounds[t.id]) ctx.drawImage(backgrounds[t.id], 0, 0, t.width, t.height);
-  else drawPlaceholder(ctx, t);
+  if (backgrounds[key]) ctx.drawImage(backgrounds[key], 0, 0, t.width, t.height);
+  else drawPlaceholder(ctx, t, v);
 
   const notes = [];
   for (const box of t.boxes) {
@@ -188,12 +190,12 @@ function render(t, values) {
     let text = fillText(box.text, values);
     if (!text) continue;
     if (box.upper) text = text.toUpperCase();
-    const result = drawBox(ctx, box, text);
+    const result = drawBox(ctx, box, text, v.colors);
     const snippet = text.replace(/\s+/g, ' ').slice(0, 40);
     if (result.overflow) notes.push({ level: 'error', text: `“${snippet}” is too long to fit. Try shortening it.` });
     else if (result.shrunk) notes.push({ level: 'info', text: `“${snippet}” was made a little smaller to fit.` });
   }
-  const noteList = document.getElementById(`notes-${t.id}`);
+  const noteList = document.getElementById(`notes-${key}`);
   noteList.replaceChildren(
     ...notes.map((n) => {
       const li = document.createElement('li');
@@ -213,7 +215,7 @@ function scheduleRender() {
 function renderAll() {
   const values = formValues();
   save(values);
-  for (const t of TEMPLATES) render(t, values);
+  for (const sheet of sheets) render(sheet, values);
 }
 
 // ---------- export ----------
@@ -222,25 +224,33 @@ function slug(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function fileName(t) {
+function place() {
   const { city, state } = formValues();
-  const place = slug([city, state].filter(Boolean).join(' ')) || 'flyer';
-  return `${place}-${t.id}.${t.output}`;
+  return slug([city, state].filter(Boolean).join(' ')) || 'flyer';
+}
+
+// A PDF holds every version as its own page; PNGs are one file per version.
+function exportFiles(t) {
+  if (t.output === 'pdf') return [{ name: `${place()}-${t.id}.pdf`, blob: () => pdfBlob(t) }];
+  return t.versions.map((v) => ({
+    name: `${place()}-${t.id}-${v.id}.png`,
+    blob: () => canvasBlob(canvases[`${t.id}-${v.id}`]),
+  }));
 }
 
 function canvasBlob(canvas) {
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 }
 
-async function exportBlob(t) {
-  const canvas = canvases[t.id];
-  if (t.output === 'pdf') {
-    const [w, h] = t.pageInches;
-    const pdf = new window.jspdf.jsPDF({ unit: 'in', format: [w, h], orientation: w > h ? 'landscape' : 'portrait' });
-    pdf.addImage(canvas, 'PNG', 0, 0, w, h, undefined, 'FAST');
-    return pdf.output('blob');
-  }
-  return canvasBlob(canvas);
+function pdfBlob(t) {
+  const [w, h] = t.pageInches;
+  const orientation = w > h ? 'landscape' : 'portrait';
+  const pdf = new window.jspdf.jsPDF({ unit: 'in', format: [w, h], orientation });
+  t.versions.forEach((v, i) => {
+    if (i > 0) pdf.addPage([w, h], orientation);
+    pdf.addImage(canvases[`${t.id}-${v.id}`], 'PNG', 0, 0, w, h, undefined, 'FAST');
+  });
+  return pdf.output('blob');
 }
 
 function saveBlob(blob, name) {
@@ -254,10 +264,12 @@ function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-async function downloadOne(t, button) {
+async function downloadOne(t, v, button) {
   button.disabled = true;
   try {
-    saveBlob(await exportBlob(t), fileName(t));
+    const files = exportFiles(t);
+    const file = files.find((f) => f.name.endsWith(`-${v.id}.png`)) || files[0];
+    saveBlob(await file.blob(), file.name);
   } finally {
     button.disabled = false;
   }
@@ -269,10 +281,8 @@ async function downloadAll(button) {
   button.textContent = 'Preparing…';
   try {
     const zip = new JSZip();
-    for (const t of TEMPLATES) zip.file(fileName(t), await exportBlob(t));
-    const { city, state } = formValues();
-    const place = slug([city, state].filter(Boolean).join(' ')) || 'flyers';
-    saveBlob(await zip.generateAsync({ type: 'blob' }), `${place}-flyers.zip`);
+    for (const t of TEMPLATES) for (const file of exportFiles(t)) zip.file(file.name, await file.blob());
+    saveBlob(await zip.generateAsync({ type: 'blob' }), `${place()}-flyers.zip`);
   } finally {
     button.disabled = false;
     button.textContent = original;
@@ -282,28 +292,28 @@ async function downloadAll(button) {
 // ---------- setup ----------
 
 function buildPreviews() {
-  for (const t of TEMPLATES) {
+  for (const { key, t, v } of sheets) {
     const card = document.createElement('figure');
     card.className = 'card';
     const canvas = document.createElement('canvas');
     canvas.width = t.width;
     canvas.height = t.height;
     canvas.style.aspectRatio = `${t.width} / ${t.height}`;
-    canvases[t.id] = canvas;
+    canvases[key] = canvas;
 
     const caption = document.createElement('figcaption');
     const title = document.createElement('span');
-    title.textContent = t.name;
+    title.textContent = `${t.name} (${v.name.toLowerCase()})`;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'secondary';
-    button.textContent = `Download ${t.output.toUpperCase()}`;
-    button.addEventListener('click', () => downloadOne(t, button));
+    button.textContent = t.output === 'pdf' ? 'Download PDF (both pages)' : 'Download PNG';
+    button.addEventListener('click', () => downloadOne(t, v, button));
     caption.append(title, button);
 
     const notes = document.createElement('ul');
     notes.className = 'notes';
-    notes.id = `notes-${t.id}`;
+    notes.id = `notes-${key}`;
 
     card.append(canvas, caption, notes);
     previews.appendChild(card);
@@ -332,8 +342,8 @@ async function init() {
   buildPreviews();
   await Promise.all([
     loadFonts(),
-    ...TEMPLATES.map(async (t) => {
-      backgrounds[t.id] = await loadImage(t.background);
+    ...sheets.map(async ({ key, v }) => {
+      backgrounds[key] = await loadImage(v.background);
     }),
   ]);
   renderAll();

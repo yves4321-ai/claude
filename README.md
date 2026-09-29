@@ -5,9 +5,9 @@ A one-page web app that fills in the changing text on the course flyers
 downloads every flyer at once. The Canva designs are used as untouched
 background images, so colors, logos and layout stay exactly as designed.
 
-- **Print flyer:** 8.5×11 PDF at 300 DPI
-- **Social post:** 1080×1080 PNG
-- **Story:** 1080×1920 PNG
+- **Print flyer:** 8.5×11 PDF at 300 DPI, light on page 1 and dark on page 2
+- **Social post:** 1080×1080 PNG, light and dark
+- **Story:** 1080×1920 PNG, light and dark
 
 Text wraps inside each flyer's margins, lines are balanced so a single word
 isn't left on its own line, and text only shrinks when wrapping can't make it
@@ -27,7 +27,8 @@ http://localhost:8000.
 1. In Canva, make a copy of the design, delete only the text that changes, and
    download it as PNG (or PDF Print for the 8.5×11).
 2. Save it in `templates/` using the file name set in `templates.js`
-   (`print.png`, `square.png`, `story.png`). Convert a PDF to a 2550×3300 PNG.
+   (for example `print-light.png` or `story-dark.png`). Convert a PDF to a
+   2550×3300 PNG.
 3. Adjust the text box positions in `templates.js`. Open the app with
    `?debug` on the end of the address to see the box outlines.
 
