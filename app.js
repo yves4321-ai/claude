@@ -1,35 +1,40 @@
-const STORAGE_KEY = 'flyer-maker:values';
+const COURSE_KEY = 'flyer-maker:course';
 const DEBUG = new URLSearchParams(location.search).has('debug');
 
 const form = document.getElementById('fields');
 const previews = document.getElementById('previews');
-const backgrounds = {};
-const canvases = {};
+const backgrounds = {}; // image per background path
+let canvases = {};
 
-// Every template/version pair is drawn on its own canvas.
-const sheets = TEMPLATES.flatMap((t) => t.versions.map((v) => ({ key: `${t.id}-${v.id}`, t, v })));
+// The course being edited, and its template/version pairs (one canvas each).
+let course = COURSES[0];
+let sheets = [];
+
+// ---------- storage ----------
+// Private windows can block storage; the app still works without it.
+
+function load(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function store(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Nothing to do.
+  }
+}
 
 // ---------- form ----------
 
-function loadSaved() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function save(values) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(values));
-  } catch {
-    // Private windows can block storage; the form still works.
-  }
-}
-
 function buildForm() {
-  const saved = loadSaved();
-  for (const field of FIELDS) {
+  const saved = load(course.storageKey, {});
+  form.replaceChildren();
+  for (const field of course.fields) {
     const label = document.createElement('label');
     label.textContent = field.label;
     let input;
@@ -49,16 +54,11 @@ function buildForm() {
     label.appendChild(input);
     form.appendChild(label);
   }
-  form.addEventListener('input', scheduleRender);
-  document.getElementById('clear').addEventListener('click', () => {
-    form.reset();
-    scheduleRender();
-  });
 }
 
 function formValues() {
   const values = {};
-  for (const field of FIELDS) values[field.id] = form.elements[field.id].value.trim();
+  for (const field of course.fields) values[field.id] = form.elements[field.id].value.trim();
   return values;
 }
 
@@ -75,8 +75,8 @@ function valuesFor(v, values) {
     ...values,
     price,
     spots,
-    designation: v.designation[values.designation] || '',
-    designedFor: v.designedFor[values.designation] || '',
+    designation: v.designation?.[values.designation] || '',
+    designedFor: v.designedFor?.[values.designation] || '',
   };
 }
 
@@ -234,7 +234,8 @@ function drawBox(ctx, box, runs) {
 function render({ key, t, v }, values) {
   const ctx = canvases[key].getContext('2d');
   ctx.clearRect(0, 0, t.width, t.height);
-  if (backgrounds[key]) ctx.drawImage(backgrounds[key], 0, 0, t.width, t.height);
+  const background = backgrounds[v.background];
+  if (background) ctx.drawImage(background, 0, 0, t.width, t.height);
   else drawPlaceholder(ctx, t, v);
 
   const filled = valuesFor(v, values);
@@ -273,7 +274,7 @@ function scheduleRender() {
 
 function renderAll() {
   const values = formValues();
-  save(values);
+  store(course.storageKey, values);
   for (const sheet of sheets) render(sheet, values);
 }
 
@@ -284,8 +285,7 @@ function slug(s) {
 }
 
 function place() {
-  const { city, state } = formValues();
-  return slug([city, state].filter(Boolean).join(' ')) || 'flyer';
+  return slug(course.fileName(formValues())) || 'flyer';
 }
 
 // A PDF holds every version as its own page; PNGs are one file per version.
@@ -340,7 +340,7 @@ async function downloadAll(button) {
   button.textContent = 'Preparing…';
   try {
     const zip = new JSZip();
-    for (const t of TEMPLATES) for (const file of exportFiles(t)) zip.file(file.name, await file.blob());
+    for (const t of course.templates) for (const file of exportFiles(t)) zip.file(file.name, await file.blob());
     saveBlob(await zip.generateAsync({ type: 'blob' }), `${place()}-flyers.zip`);
   } finally {
     button.disabled = false;
@@ -351,6 +351,8 @@ async function downloadAll(button) {
 // ---------- setup ----------
 
 function buildPreviews() {
+  canvases = {};
+  previews.replaceChildren();
   for (const { key, t, v } of sheets) {
     const card = document.createElement('figure');
     card.className = 'card';
@@ -377,8 +379,6 @@ function buildPreviews() {
     card.append(canvas, caption, notes);
     previews.appendChild(card);
   }
-  const all = document.getElementById('download-all');
-  all.addEventListener('click', () => downloadAll(all));
 }
 
 function loadImage(src) {
@@ -392,24 +392,56 @@ function loadImage(src) {
 
 async function loadFonts() {
   const fonts = new Set(['600 40px "Work Sans"']);
-  for (const { v } of sheets) {
-    for (const box of v.boxes) {
-      for (const piece of box.runs || [box]) fonts.add(fontFor(piece, 40));
+  for (const c of COURSES) {
+    for (const t of c.templates) {
+      for (const v of t.versions) {
+        for (const box of v.boxes) {
+          for (const piece of box.runs || [box]) fonts.add(fontFor(piece, 40));
+        }
+      }
     }
   }
   await Promise.all([...fonts].map((font) => document.fonts.load(font)));
 }
 
-async function init() {
+// Shows a course: its form, its flyers and its saved values.
+async function showCourse(id) {
+  course = COURSES.find((c) => c.id === id) || COURSES[0];
+  store(COURSE_KEY, course.id);
+  for (const button of document.querySelectorAll('#courses button')) {
+    button.setAttribute('aria-pressed', button.dataset.course === course.id);
+  }
+  document.getElementById('course-title').textContent = course.title;
+  sheets = course.templates.flatMap((t) => t.versions.map((v) => ({ key: `${t.id}-${v.id}`, t, v })));
   buildForm();
   buildPreviews();
-  await Promise.all([
-    loadFonts(),
-    ...sheets.map(async ({ key, v }) => {
-      backgrounds[key] = await loadImage(v.background);
+  await Promise.all(
+    sheets.map(async ({ v }) => {
+      if (!(v.background in backgrounds)) backgrounds[v.background] = await loadImage(v.background);
     }),
-  ]);
+  );
   renderAll();
+}
+
+async function init() {
+  const nav = document.getElementById('courses');
+  for (const c of COURSES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.course = c.id;
+    button.textContent = c.name;
+    button.addEventListener('click', () => showCourse(c.id));
+    nav.appendChild(button);
+  }
+  form.addEventListener('input', scheduleRender);
+  document.getElementById('clear').addEventListener('click', () => {
+    form.reset();
+    scheduleRender();
+  });
+  const all = document.getElementById('download-all');
+  all.addEventListener('click', () => downloadAll(all));
+  await loadFonts();
+  await showCourse(load(COURSE_KEY, COURSES[0].id));
 }
 
 init();

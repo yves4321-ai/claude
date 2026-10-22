@@ -8,8 +8,11 @@
 </head>
 <body>
   <header>
-    <h1>Flyer Maker</h1>
-    <p>Fill in the course details once. All flyers update as you type.</p>
+    <div>
+      <h1>Flyer Maker</h1>
+      <p><span id="course-title"></span>: fill in the details once. All flyers update as you type.</p>
+    </div>
+    <nav id="courses" aria-label="Course"></nav>
   </header>
   <main>
     <section class="panel">
@@ -24,6 +27,7 @@
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jszip.min.js"></script>
   <script src="templates.js"></script>
+  <script src="level2.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

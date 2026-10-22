@@ -1,8 +1,10 @@
 # Flyer Maker
 
-A one-page web app for the EFC Instructor Certification Course flyers. Type
-the course details once and it produces all six flyers, using the exact Canva
-designs as backgrounds, so colors, photos, logos and layout stay untouched:
+A one-page web app for the EFC course flyers. Pick **Level 1** (Instructor
+Certification Course) or **Level 2** (Advanced Instructor Certification
+Course) at the top, type the course details once, and it produces all six
+flyers for that course, using the exact Canva designs as backgrounds, so
+colors, photos, logos and layout stay untouched:
 
 | Design | Output |
 | --- | --- |
@@ -10,7 +12,12 @@ designs as backgrounds, so colors, photos, logos and layout stay untouched:
 | Social post 1080×1080, light and dark | Two PNGs |
 | Story 1080×1920, light and dark | Two PNGs |
 
-Changing fields: city, state, hosted by, date range, hours, address, price,
+**Level 2** changes only hosted by, date range and address; hours, price and
+who can enroll are part of the design. Level 2 was designed in dark only, so
+its light versions are generated from the dark ones: white background, black
+text, and the same photos, olive accents and layout.
+
+**Level 1** changing fields: city, state, hosted by, date range, hours, address, price,
 who it's open to (LEO or Public) and, on the 8.5×11 only, seats available.
 Choosing LEO or Public also switches the "Designed for …" bullet and the fine
 print on every flyer.
@@ -39,13 +46,15 @@ nothing needs to be filled in. Every push to that branch updates the site.
 
 ## How it's put together
 
-- `sources/`: the Canva exports (8.5×11 PDF, story PDF, square PNGs) plus the
-  Bryan, TX stories used to check the layout.
+- `sources/`: the Canva exports. Level 1: 8.5×11 PDF, story PDF, square PNGs,
+  plus the Bryan, TX stories used to check the layout. Level 2 (`l2-*`):
+  8.5×11, story and square PDFs.
 - `tools/build_backgrounds.py`: removes the changing text from the sources and
   writes the blank backgrounds to `templates/`. Rerun it after replacing a
-  source file: `pip install pymupdf pillow numpy`, then
+  source file: `pip install pymupdf pillow numpy fonttools brotli`, then
   `python3 tools/build_backgrounds.py`.
-- `templates.js`: every text box's font, size, color and position, plus the
+- `templates.js` (Level 1) and `level2.js` (Level 2, plus the list of
+  courses): every text box's font, size, color and position, plus the
   wording for LEO and Public. Open the app with `?debug` on the end of the
   address to see the boxes outlined.
 - `app.js`: the form, text layout, and PDF/PNG export.
